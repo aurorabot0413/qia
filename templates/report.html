@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QiA QA Report - PR #{{ pr_number }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+        
+        .status-approved {
+            background-color: #4caf50;
+        }
+        
+        .status-rejected {
+            background-color: #f44336;
+        }
+        
+        .status-needs-review {
+            background-color: #ff9800;
+        }
+        
+        .summary {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .summary h2 {
+            color: #282c34;
+            margin-bottom: 15px;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .screenshots {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .screenshots h2 {
+            margin-bottom: 20px;
+        }
+        
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .screenshot-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .screenshot-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .screenshot-caption {
+            padding: 15px;
+            background: #f8f9fa;
+        }
+        
+        .issues {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .issue {
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .issue.critical {
+            border-left-color: #f44336;
+        }
+        
+        .issue.medium {
+            border-left-color: #ff9800;
+        }
+        
+        .issue.low {
+            border-left-color: #4caf50;
+        }
+        
+        .issue h3 {
+            margin-bottom: 5px;
+        }
+        
+        .issue-type {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            background: #667eea;
+            color: white;
+            margin-right: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 QiA QA Report</h1>
+            <p>Pull Request #{{ pr_number }} - {{ pr_title }}</p>
+            <p>Repository: {{ repo_name }}</p>
+            <p>Generated: {{ timestamp }}</p>
+            
+            <div class="status-badge status-{{ status_class }}">
+                {{ status_text }} - Confidence: {{ confidence }}%
+            </div>
+        </div>
+        
+        <div class="summary">
+            <h2>📊 Executive Summary</h2>
+            <p>{{ summary }}</p>
+            
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value">{{ files_changed }}</div>
+                    <div class="metric-label">Files Changed</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">{{ additions }}</div>
+                    <div class="metric-label">Additions</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">{{ deletions }}</div>
+                    <div class="metric-label">Deletions</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">{{ screenshots_count }}</div>
+                    <div class="metric-label">Screenshots</div>
+                </div>
+            </div>
+        </div>
+        
+        {% if screenshots %}
+        <div class="screenshots">
+            <h2>📸 Screenshots</h2>
+            <div class="screenshot-grid">
+                {% for screenshot in screenshots %}
+                <div class="screenshot-item">
+                    <img src="{{ screenshot.url }}" alt="{{ screenshot.route }}">
+                    <div class="screenshot-caption">
+                        <strong>Route:</strong> {{ screenshot.route }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if issues %}
+        <div class="issues">
+            <h2>🔍 Issues Found ({{ issues|length }})</h2>
+            
+            {% for issue in issues %}
+            <div class="issue {{ issue.severity }}">
+                <span class="issue-type">{{ issue.type }}</span>
+                <h3>{{ issue.description }}</h3>
+                <p><strong>Location:</strong> {{ issue.location }}</p>
+                <p><strong>Recommendation:</strong> {{ issue.recommendation }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="issues">
+            <h2>✅ No Issues Found</h2>
+            <p>No critical, medium, or low issues were detected during the QA analysis.</p>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>Generated by <strong>QiA</strong> - QA Inteligente Automatizado</p>
+            <p>Powered by LangChain + Vertex AI Gemini 2.5 Pro</p>
+            <p><a href="https://github.com/aurorabot0413/qia">View on GitHub</a></p>
+        </div>
+    </div>
+</body>
+</html>
