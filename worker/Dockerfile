@@ -1,9 +1,9 @@
-# Worker Dockerfile
+# Worker Dockerfile - QA Automation
 FROM mcr.microsoft.com/playwright/python:v1.47.0-jammy
 
 WORKDIR /app
 
-# Install dependencies
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -11,6 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN playwright install chromium
 RUN playwright install-deps
 
+# Copy application code
 COPY . .
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Run QA script
 CMD ["python", "qa_script.py"]
