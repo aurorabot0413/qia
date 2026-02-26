@@ -99,7 +99,7 @@ class CloudBuildTrigger:
                 "name": "gcr.io/cloud-builders/git",
                 "id": "checkout-pr",
                 "entrypoint": "bash",
-                "args": ["-c", f"git fetch origin pull/{pr_number}/head:pr-{pr_number} && git checkout pr-{pr_number}"]
+                "args": ["-c", f"git fetch origin refs/pull/{pr_number}/head:pr-{pr_number} && git checkout pr-{pr_number}"]
             },
             {
                 "name": "gcr.io/cloud-builders/docker",
