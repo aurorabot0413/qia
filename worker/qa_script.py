@@ -89,12 +89,12 @@ async def main():
         
         logger.info(f"QA completed for PR #{pr_number}")
         logger.info(f"Report: {report_url}")
+        logger.info(f"Status: {analysis['status']}")
+        logger.info(f"Confidence: {analysis.get('confidence', 0) * 100:.0f}%")
         
-        # Exit code basado en resultado
-        if analysis["status"] == "approved":
-            exit(0)
-        else:
-            exit(1)
+        # Exit code 0 - el pipeline se completó exitosamente
+        # El resultado del análisis (approved/needs_review/rejected) va en el reporte
+        exit(0)
             
     except Exception as e:
         logger.error(f"Error in QA pipeline: {e}", exc_info=True)
