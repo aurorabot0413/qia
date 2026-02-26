@@ -20,7 +20,7 @@ gcloud pubsub topics create qia-webhooks 2>/dev/null || echo "Topic already exis
 echo "🏗️ Building Orchestrator..."
 gcloud builds submit \
   --config cloudbuild.yaml \
-  --substitutions=_PROJECT_ID=$PROJECT_ID \
+  --project=$PROJECT_ID \
   .
 
 # 4. Get Cloud Run URL
@@ -43,7 +43,7 @@ gcloud pubsub subscriptions create qia-webhooks-sub \
 echo "🏗️ Building QA Worker..."
 gcloud builds submit \
   --config cloudbuild-worker.yaml \
-  --substitutions=_PROJECT_ID=$PROJECT_ID \
+  --project=$PROJECT_ID \
   .
 
 echo "✅ QiA deployed successfully!"
