@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 from typing import Dict, List
 from datetime import datetime
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,9 @@ class ReportGenerator:
     """Genera reportes HTML para QiA"""
     
     def __init__(self):
-        self.env = Environment(loader=FileSystemLoader('templates'))
+        # Usar ruta absoluta al directorio templates
+        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        self.env = Environment(loader=FileSystemLoader(template_dir))
         self.template = self.env.get_template('report.html')
     
     def generate(
