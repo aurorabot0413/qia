@@ -17,5 +17,5 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run QA script
-CMD ["python", "qa_script.py"]
+# Set entrypoint for Cloud Build compatibility
+ENTRYPOINT ["python", "/app/qa_script.py"]
