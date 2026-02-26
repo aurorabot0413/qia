@@ -3,9 +3,10 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.2
 pydantic-settings==2.5.2
-google-cloud-build==3.27.0
+google-cloud-build>=3.30.0
 google-cloud-storage==2.18.2
 google-cloud-secret-manager==2.20.2
 PyGithub==2.4.0
 python-dotenv==1.0.1
 pyyaml==6.0.2
+protobuf>=4.21.0
