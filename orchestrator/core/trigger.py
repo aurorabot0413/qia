@@ -3,7 +3,6 @@ Cloud Build Trigger - Dispara pipelines de QA
 """
 import logging
 import os
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -54,30 +53,28 @@ class CloudBuildTrigger:
         Dispara el pipeline de QA en Cloud Build
         """
         try:
+            import yaml
             from google.cloud.devtools import cloudbuild_v1
             from google.protobuf import duration_pb2
             
-            # Generar pasos del build
+            # Generar pasos del build con valores directos
             steps = self._generate_build_steps(repo_name, pr_number)
             
-            # Crear build con steps directos (sin source, el primer step clona)
-            build = {
+            # Crear config completa
+            build_config = {
                 "steps": steps,
-                "substitutions": {
-                    "_REPO_NAME": repo_name,
-                    "_PR_NUMBER": str(pr_number),
-                    "_GEMINI_MODEL": self.gemini_model,
-                    "_PROJECT_ID": self.project_id,
-                    "_BUCKET_NAME": self.bucket_name
-                },
                 "timeout": "1200s",
                 "options": {
                     "machineType": "N1_HIGHCPU_8"
                 }
             }
             
-            # Subir config a GCS y ejecutar
-            config_yaml = await self._upload_build_config(build, pr_number)
+            # Subir config a GCS
+            bucket = self.storage_client.bucket(self.bucket_name)
+            blob = bucket.blob(f"builds/pr-{pr_number}-cloudbuild.yaml")
+            blob.upload_from_string(yaml.dump(build_config))
+            
+            logger.info(f"Uploaded build config to gs://{self.bucket_name}/builds/pr-{pr_number}-cloudbuild.yaml")
             
             # Crear build desde GCS
             build_obj = cloudbuild_v1.Build(
@@ -88,7 +85,6 @@ class CloudBuildTrigger:
                     )
                 ),
                 steps=steps,
-                substitutions=build["substitutions"],
                 timeout=duration_pb2.Duration(seconds=1200)
             )
             
@@ -107,35 +103,24 @@ class CloudBuildTrigger:
             logger.error(f"Error triggering QA pipeline: {e}")
             raise
     
-    async def _upload_build_config(self, config: dict, pr_number: int) -> str:
-        """Sube el archivo de configuración a GCS"""
-        import yaml
-        
-        bucket = self.storage_client.bucket(self.bucket_name)
-        blob = bucket.blob(f"builds/pr-{pr_number}-cloudbuild.yaml")
-        blob.upload_from_string(yaml.dump(config))
-        
-        return f"gs://{self.bucket_name}/builds/pr-{pr_number}-cloudbuild.yaml"
-    
     def _generate_build_steps(self, repo_name: str, pr_number: int) -> list:
         """Genera los pasos del build para QA"""
         project_id = self.project_id
+        bucket_name = self.bucket_name
+        gemini_model = self.gemini_model
         
         return [
-            # Paso 1: Clonar repo
             {
                 "name": "gcr.io/cloud-builders/git",
                 "id": "clone",
                 "args": ["clone", f"https://github.com/{repo_name}.git", "."]
             },
-            # Paso 2: Checkout del PR
             {
                 "name": "gcr.io/cloud-builders/git",
                 "id": "checkout-pr",
                 "entrypoint": "bash",
                 "args": ["-c", f"git fetch origin pull/{pr_number}/head:pr-{pr_number} && git checkout pr-{pr_number}"]
             },
-            # Paso 3: Detectar y buildear
             {
                 "name": "gcr.io/cloud-builders/docker",
                 "id": "build-app",
@@ -151,23 +136,17 @@ class CloudBuildTrigger:
                         EXPOSE 8080' > Dockerfile.temp
                         docker build -f Dockerfile.temp -t app-to-test .
                     else
-                        echo "No build system detected, using dummy"
-                        echo 'FROM nginx:alpine' > Dockerfile.dummy
-                        docker build -f Dockerfile.dummy -t app-to-test .
+                        echo "No build system detected"
+                        exit 1
                     fi
                 """]
             },
-            # Paso 4: Levantar app
             {
                 "name": "gcr.io/cloud-builders/docker",
                 "id": "run-app",
                 "entrypoint": "bash",
-                "args": ["-c", """
-                    docker run -d --name test-app -p 3000:8080 app-to-test || true
-                    sleep 5
-                """]
+                "args": ["-c", "docker run -d --name test-app -p 3000:8080 app-to-test && sleep 5"]
             },
-            # Paso 5: QA Worker
             {
                 "name": f"gcr.io/{project_id}/qia-worker",
                 "id": "qa-worker",
@@ -175,12 +154,11 @@ class CloudBuildTrigger:
                     "APP_URL=http://localhost:3000",
                     f"PR_NUMBER={pr_number}",
                     f"REPO_NAME={repo_name}",
-                    f"GEMINI_MODEL={self.gemini_model}",
+                    f"GEMINI_MODEL={gemini_model}",
                     f"PROJECT_ID={project_id}",
-                    f"BUCKET_NAME={self.bucket_name}"
+                    f"BUCKET_NAME={bucket_name}"
                 ]
             },
-            # Paso 6: Cleanup
             {
                 "name": "gcr.io/cloud-builders/docker",
                 "id": "cleanup",
