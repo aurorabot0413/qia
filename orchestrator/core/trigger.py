@@ -53,39 +53,19 @@ class CloudBuildTrigger:
         Dispara el pipeline de QA en Cloud Build
         """
         try:
-            import yaml
             from google.cloud.devtools import cloudbuild_v1
             from google.protobuf import duration_pb2
             
             # Generar pasos del build con valores directos
             steps = self._generate_build_steps(repo_name, pr_number)
             
-            # Crear config completa
-            build_config = {
-                "steps": steps,
-                "timeout": "1200s",
-                "options": {
-                    "machineType": "N1_HIGHCPU_8"
-                }
-            }
-            
-            # Subir config a GCS
-            bucket = self.storage_client.bucket(self.bucket_name)
-            blob = bucket.blob(f"builds/pr-{pr_number}-cloudbuild.yaml")
-            blob.upload_from_string(yaml.dump(build_config))
-            
-            logger.info(f"Uploaded build config to gs://{self.bucket_name}/builds/pr-{pr_number}-cloudbuild.yaml")
-            
-            # Crear build desde GCS
+            # Crear build SIN source - el primer step hace clone
             build_obj = cloudbuild_v1.Build(
-                source=cloudbuild_v1.Source(
-                    storage_source=cloudbuild_v1.StorageSource(
-                        bucket=self.bucket_name,
-                        object_=f"builds/pr-{pr_number}-cloudbuild.yaml"
-                    )
-                ),
                 steps=steps,
-                timeout=duration_pb2.Duration(seconds=1200)
+                timeout=duration_pb2.Duration(seconds=1200),
+                options=cloudbuild_v1.BuildOptions(
+                    machine_type="N1_HIGHCPU_8"
+                )
             )
             
             # Ejecutar
