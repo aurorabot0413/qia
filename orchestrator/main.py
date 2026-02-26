@@ -4,9 +4,7 @@ QiA Orchestrator - FastAPI App
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import JSONResponse
 import logging
-
-from core.config import settings
-from core.trigger import CloudBuildTrigger
+import os
 
 app = FastAPI(
     title="QiA Orchestrator",
@@ -20,7 +18,18 @@ logger = logging.getLogger(__name__)
 
 @app.get("/")
 async def root():
-    return {"service": "QiA Orchestrator", "status": "running"}
+    return {
+        "service": "QiA Orchestrator", 
+        "status": "running",
+        "project": os.getenv("PROJECT_ID", "unknown"),
+        "version": "0.1.0"
+    }
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}
 
 
 @app.post("/webhook/github")
@@ -70,10 +79,16 @@ async def github_webhook(request: Request, background_tasks: BackgroundTasks):
 
 async def trigger_qa_pipeline(repo_name: str, pr_number: int):
     """Dispara el pipeline de QA en Cloud Build"""
-    trigger = CloudBuildTrigger()
-    await trigger.run_qa_pipeline(repo_name, pr_number)
+    try:
+        from core.trigger import CloudBuildTrigger
+        trigger = CloudBuildTrigger()
+        await trigger.run_qa_pipeline(repo_name, pr_number)
+        logger.info(f"QA pipeline triggered for PR #{pr_number}")
+    except Exception as e:
+        logger.error(f"Error in QA pipeline: {e}")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
